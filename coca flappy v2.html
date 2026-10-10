@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Coca Flappy — Web</title>
+  <meta name="description" content="Coca Flappy: un juego web responsive estilo arcade, listo para abrirse en otros dispositivos." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bungee:wght@400&family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#fff5ef;
+      --bg-2:#ffd8c8;
+      --ink:#211714;
+      --red:#d61f26;
+      --red-dark:#9b1015;
+      --cream:#fffaf6;
+      --gold:#ffcf5a;
+      --glass:rgba(255,255,255,.55);
+      --line:rgba(33,23,20,.12);
+      --shadow:0 20px 60px rgba(138, 30, 12, .18);
+      --radius:24px;
+      --radius-sm:16px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0}
+    body{
+      font-family:"Inter", sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at 15% 20%, rgba(255,207,90,.45), transparent 22%),
+        radial-gradient(circle at 85% 10%, rgba(214,31,38,.12), transparent 28%),
+        linear-gradient(180deg, #fff8f3 0%, #ffe4d7 55%, #ffd3c0 100%);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    body::before{
+      content:"";
+      position:fixed;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(rgba(255,255,255,.12), rgba(255,255,255,.12)),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 18px,
+          rgba(255,255,255,.08) 18px 19px
+        );
+      mix-blend-mode:soft-light;
+      opacity:.55;
+    }
+
+    .wrap{
+      width:min(1120px, calc(100% - 24px));
+      margin-inline:auto;
+    }
+
+    .app{
+      min-height:100vh;
+      display:grid;
+      grid-template-rows:auto 1fr auto;
+      gap:14px;
+      padding:14px 0 16px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:14px 18px;
+      border:1px solid rgba(255,255,255,.55);
+      background:linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.42));
+      backdrop-filter: blur(12px);
+      border-radius:28px;
+      box-shadow:var(--shadow);
+      animation:rise .7s ease both;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      min-width:0;
+    }
+
+    .brand-badge{
+      width:54px;
+      height:54px;
+      border-radius:18px;
+      display:grid;
+      place-items:center;
+      background:
+        radial-gradient(circle at 35% 30%, #ff6f74 0%, #d61f26 45%, #9b1015 100%);
+      box-shadow:
+        inset 0 2px 10px rgba(255,255,255,.35),
+        0 16px 32px rgba(214,31,38,.25);
+      position:relative;
+      overflow:hidden;
+      flex:0 0 auto;
+    }
+
+    .brand-badge::before{
+      content:"";
+      position:absolute;
+      width:85%;
+      height:20%;
+      background:rgba(255,255,255,.82);
+      border-radius:999px;
+      transform:rotate(-22deg);
+      filter:blur(.2px);
+    }
+
+    .brand h1{
+      margin:0;
+      font-family:"Bungee", cursive;
+      font-size:clamp(1.1rem, 2.4vw, 2rem);
+      line-height:1;
+      letter-spacing:.04em;
+    }
+
+    .brand p{
+      margin:.3rem 0 0;
+      color:rgba(33,23,20,.7);
+      font-size:.92rem;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    .stats{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+      animation:rise .7s ease .08s both;
+    }
+
+    .pill{
+      padding:11px 14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.6);
+      border:1px solid rgba(33,23,20,.08);
+      min-width:92px;
+      text-align:center;
+    }
+
+    .pill .label{
+      display:block;
+      font-size:.72rem;
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      color:rgba(33,23,20,.58);
+      margin-bottom:4px;
+      font-weight:800;
+    }
+
+    .pill .value{
+      font-size:1.08rem;
+      font-weight:800;
+    }
+
+    .main{
+      display:grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, .8fr);
+      gap:14px;
+      align-items:stretch;
+    }
+
+    .stage-shell,
+    .sidepanel{
+      border:1px solid rgba(255,255,255,.5);
+      background:linear-gradient(180deg, rgba(255,255,255,.72), rgba(255,255,255,.35));
+      backdrop-filter: blur(12px);
+      border-radius:32px;
+      box-shadow:var(--shadow);
+    }
+
+    .stage-shell{
+      padding:12px;
+      position:relative;
+      animation:rise .8s ease .12s both;
+    }
+
+    .canvas-wrap{
+      position:relative;
+      border-radius:24px;
+      overflow:hidden;
+      background:
+        linear-gradient(180deg, #ffe7d8 0%, #ffd4bf 35%, #f6b88f 100%);
+      min-height:60svh;
+      isolation:isolate;
+      border:1px solid rgba(33,23,20,.08);
+    }
+
+    .canvas-wrap::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:
+        radial-gradient(circle at 12% 18%, rgba(255,255,255,.55) 0 7%, transparent 7.5%),
+        radial-gradient(circle at 70% 14%, rgba(255,255,255,.42) 0 8%, transparent 8.5%),
+        radial-gradient(circle at 90% 24%, rgba(255,255,255,.35) 0 5%, transparent 5.5%);
+      opacity:.8;
+      z-index:0;
+    }
+
+    canvas{
+      display:block;
+      width:100%;
+      height:auto;
+      aspect-ratio:16/10;
+      position:relative;
+      z-index:1;
+    }
+
+    .overlay{
+      position:absolute;
+      inset:0;
+      z-index:3;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      pointer-events:none;
+    }
+
+    .overlay-card{
+      max-width:520px;
+      text-align:center;
+      padding:22px 20px;
+      border-radius:28px;
+      background:rgba(255,250,246,.75);
+      backdrop-filter: blur(14px);
+      border:1px solid rgba(255,255,255,.7);
+      box-shadow:0 18px 44px rgba(90, 24, 9, .16);
+      transform:translateY(0);
+      transition:.3s ease;
+    }
+
+    .overlay.hidden{
+      opacity:0;
+      visibility:hidden;
+    }
+
+    .overlay h2{
+      margin:0 0 10px;
+      font-family:"Bungee", cursive;
+      font-size:clamp(1.4rem, 4vw, 2.5rem);
+      line-height:1.05;
+      letter-spacing:.04em;
+    }
+
+    .overlay p{
+      margin:0 auto 16px;
+      max-width:42ch;
+      color:rgba(33,23,20,.76);
+      font-size:.98rem;
+    }
+
+    .cta-row{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+      pointer-events:auto;
+    }
+
+    button{
+      appearance:none;
+      border:none;
+      cursor:pointer;
+      font:inherit;
+      transition:transform .18s ease, box-shadow .18s ease, background .18s ease, color .18s ease, opacity .18s ease;
+    }
+
+    .btn{
+      padding:14px 18px;
+      border-radius:999px;
+      font-weight:800;
+      letter-spacing:.02em;
+    }
+
+    .btn-primary{
+      color:white;
+      background:linear-gradient(180deg, #ec3e45, #b9141a);
+      box-shadow:0 14px 26px rgba(185,20,26,.28), inset 0 1px 0 rgba(255,255,255,.3);
+    }
+
+    .btn-secondary{
+      color:var(--ink);
+      background:rgba(255,255,255,.85);
+      border:1px solid rgba(33,23,20,.1);
+    }
+
+    .btn:hover{transform:translateY(-2px) scale(1.01)}
+    .btn:active{transform:translateY(1px) scale(.99)}
+
+    .tap-zone{
+      position:absolute;
+      inset:0;
+      z-index:2;
+      background:transparent;
+    }
+
+    .sidepanel{
+      padding:18px;
+      display:grid;
+      gap:18px;
+      align-content:start;
+      animation:rise .8s ease .2s both;
+    }
+
+    .panel-block h3{
+      margin:0 0 8px;
+      font-family:"Bungee", cursive;
+      font-size:1rem;
+      letter-spacing:.04em;
+    }
+
+    .panel-block p,
+    .panel-block li{
+      color:rgba(33,23,20,.76);
+      line-height:1.55;
+      font-size:.95rem;
+      margin:0;
+    }
+
+    .panel-block ul{
+      margin:0;
+      padding-left:18px;
+      display:grid;
+      gap:8px;
+    }
+
+    .controls{
+      display:grid;
+      gap:10px;
+    }
+
+    .control{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-radius:18px;
+      background:rgba(255,255,255,.55);
+      border:1px solid rgba(33,23,20,.08);
+    }
+
+    .kbd{
+      min-width:40px;
+      height:34px;
+      padding:0 10px;
+      display:grid;
+      place-items:center;
+      border-radius:12px;
+      background:#fff;
+      border:1px solid rgba(33,23,20,.1);
+      font-weight:800;
+      box-shadow:0 8px 18px rgba(33,23,20,.08);
+    }
+
+    .share-box{
+      padding:14px;
+      border-radius:22px;
+      background:
+        linear-gradient(135deg, rgba(214,31,38,.08), rgba(255,255,255,.6));
+      border:1px solid rgba(33,23,20,.08);
+    }
+
+    .link-row{
+      display:flex;
+      gap:8px;
+      margin-top:10px;
+    }
+
+    .fake-url{
+      flex:1;
+      min-width:0;
+      padding:12px 14px;
+      border-radius:16px;
+      background:rgba(255,255,255,.78);
+      border:1px solid rgba(33,23,20,.08);
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+      font-size:.92rem;
+    }
+
+    .footer{
+      padding:0 4px;
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      color:rgba(33,23,20,.68);
+      font-size:.9rem;
+      animation:rise .9s ease .28s both;
+    }
+
+    .reveal{
+      opacity:0;
+      transform:translateY(24px);
+      transition:opacity .65s ease, transform .65s ease;
+    }
+
+    .reveal.visible{
+      opacity:1;
+      transform:translateY(0);
+    }
+
+    @keyframes rise{
+      from{opacity:0; transform:translateY(18px)}
+      to{opacity:1; transform:translateY(0)}
+    }
+
+    @media (max-width: 920px){
+      .main{
+        grid-template-columns:1fr;
+      }
+      .canvas-wrap{
+        min-height:auto;
+      }
+    }
+
+    @media (max-width: 640px){
+      .topbar{
+        flex-direction:column;
+        align-items:flex-start;
+      }
+      .stats{
+        width:100%;
+        justify-content:stretch;
+      }
+      .pill{
+        flex:1 1 calc(50% - 5px);
+      }
+      .overlay-card{
+        padding:18px 16px;
+      }
+      .footer{
+        font-size:.82rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-badge" aria-hidden="true"></div>
+        <div>
+          <h1>COCA FLAPPY</h1>
+          <p>Versión web responsive para abrir en celular, tablet o PC</p>
+        </div>
+      </div>
+
+      <div class="stats" aria-label="Marcadores del juego">
+        <div class="pill">
+          <span class="label">Puntos</span>
+          <span class="value" id="score">0</span>
+        </div>
+        <div class="pill">
+          <span class="label">Récord</span>
+          <span class="value" id="best">0</span>
+        </div>
+        <div class="pill">
+          <span class="label">Estado</span>
+          <span class="value" id="statusText">Listo</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="stage-shell reveal">
+        <div class="canvas-wrap">
+          <canvas id="game" width="960" height="600" aria-label="Juego Coca Flappy"></canvas>
+          <button class="tap-zone" id="tapZone" aria-label="Tocar para saltar"></button>
+
+          <div class="overlay" id="startOverlay">
+            <div class="overlay-card">
+              <h2>TOCA Y VUELA</h2>
+              <p>
+                Controla la botella y pasa entre las columnas. Funciona con toque, clic, barra espaciadora o flecha arriba.
+              </p>
+              <div class="cta-row">
+                <button class="btn btn-primary" id="startBtn">Empezar partida</button>
+                <button class="btn btn-secondary" id="demoBtn">Ver tip</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="overlay hidden" id="gameOverOverlay">
+            <div class="overlay-card">
+              <h2>FIN DEL JUEGO</h2>
+              <p id="gameOverText">Lograste 0 puntos.</p>
+              <div class="cta-row">
+                <button class="btn btn-primary" id="restartBtn">Jugar otra vez</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="sidepanel reveal">
+        <section class="panel-block">
+          <h3>Cómo compartirlo</h3>
+          <p>
+            Este archivo es una sola página HTML. Para que funcione en otros dispositivos, súbelo a GitHub Pages, Netlify, Vercel o ábrelo desde un servidor local en tu red.
+          </p>
+        </section>
+
+        <section class="panel-block">
+          <h3>Controles</h3>
+          <div class="controls">
+            <div class="control">
+              <span>Tocar pantalla / clic</span>
+              <span class="kbd">TAP</span>
+            </div>
+            <div class="control">
+              <span>Barra espaciadora</span>
+              <span class="kbd">SPACE</span>
+            </div>
+            <div class="control">
+              <span>Flecha arriba</span>
+              <span class="kbd">↑</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-block">
+          <h3>Notas</h3>
+          <ul>
+            <li>No usa imágenes externas; todo está dibujado con canvas.</li>
+            <li>Guarda el récord en el dispositivo con <strong>localStorage</strong>.</li>
+            <li>Responsive para móvil y escritorio.</li>
+          </ul>
+        </section>
+
+        <section class="share-box panel-block">
+          <h3>Publicación sugerida</h3>
+          <p>Cuando lo subas, comparte un enlace como este:</p>
+          <div class="link-row">
+            <div class="fake-url" id="shareText">https://tu-juego.netlify.app</div>
+            <button class="btn btn-secondary" id="copyBtn">Copiar</button>
+          </div>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <span>Hecho como arcade web ligero.</span>
+      <span>Tip: si quieres, luego te lo convierto en modo multijugador o con ranking online.</span>
+    </footer>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('game');
+    const ctx = canvas.getContext('2d');
+
+    const scoreEl = document.getElementById('score');
+    const bestEl = document.getElementById('best');
+    const statusEl = document.getElementById('statusText');
+
+    const startOverlay = document.getElementById('startOverlay');
+    const gameOverOverlay = document.getElementById('gameOverOverlay');
+    const gameOverText = document.getElementById('gameOverText');
+
+    const startBtn = document.getElementById('startBtn');
+    const restartBtn = document.getElementById('restartBtn');
+    const tapZone = document.getElementById('tapZone');
+    const demoBtn = document.getElementById('demoBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const shareText = document.getElementById('shareText');
+
+    const bestKey = 'cocaFlappyBest';
+    let bestScore = Number(localStorage.getItem(bestKey) || 0);
+    bestEl.textContent = bestScore;
+
+    const state = {
+      started: false,
+      over: false,
+      score: 0,
+      speed: 3.2,
+      gravity: 0.42,
+      flap: -7.2,
+      pipeGap: 170,
+      pipeWidth: 86,
+      pipeSpacing: 270,
+      groundH: 88,
+      lastTime: 0
+    };
+
+    const bird = {
+      x: 220,
+      y: 240,
+      w: 74,
+      h: 120,
+      vy: 0,
+      rot: 0
+    };
+
+    let pipes = [];
+    let particles = [];
+    let clouds = Array.from({length: 7}, (_, i) => ({
+      x: 120 + i * 150,
+      y: 65 + Math.random() * 180,
+      s: 0.7 + Math.random() * 1.3,
+      v: 0.1 + Math.random() * 0.35
+    }));
+
+    function resizeCanvasDisplay() {
+      const ratio = canvas.width / canvas.height;
+      const parent = canvas.parentElement;
+      const maxW = parent.clientWidth;
+      canvas.style.width = maxW + 'px';
+      canvas.style.height = (maxW / ratio) + 'px';
+    }
+    window.addEventListener('resize', resizeCanvasDisplay);
+    resizeCanvasDisplay();
+
+    function resetGame() {
+      state.started = false;
+      state.over = false;
+      state.score = 0;
+      state.speed = 3.2;
+      state.pipeGap = 170;
+      bird.y = 240;
+      bird.vy = 0;
+      bird.rot = 0;
+      pipes = [];
+      particles = [];
+      scoreEl.textContent = '0';
+      statusEl.textContent = 'Listo';
+      startOverlay.classList.remove('hidden');
+      gameOverOverlay.classList.add('hidden');
+      seedPipes();
+    }
+
+    function seedPipes() {
+      pipes = [];
+      for (let i = 0; i < 4; i++) {
+        createPipe(760 + i * state.pipeSpacing);
+      }
+    }
+
+    function createPipe(x) {
+      const minTop = 90;
+      const maxTop = canvas.height - state.groundH - state.pipeGap - 120;
+      const top = minTop + Math.random() * (maxTop - minTop);
+      pipes.push({
+        x,
+        top,
+        scored: false
+      });
+    }
+
+    function startGame() {
+      if (state.started && !state.over) return;
+      state.started = true;
+      state.over = false;
+      state.score = 0;
+      state.speed = 3.2;
+      state.pipeGap = 170;
+      bird.y = 240;
+      bird.vy = 0;
+      bird.rot = 0;
+      particles = [];
+      seedPipes();
+      scoreEl.textContent = '0';
+      startOverlay.classList.add('hidden');
+      gameOverOverlay.classList.add('hidden');
+      statusEl.textContent = 'Jugando';
+      flap();
+    }
+
+    function flap() {
+      if (state.over) return;
+      if (!state.started) {
+        startGame();
+        return;
+      }
+      bird.vy = state.flap;
+      burst(bird.x - 18, bird.y + 18, 8);
+    }
+
+    function endGame() {
+      if (state.over) return;
+      state.over = true;
+      statusEl.textContent = 'Perdiste';
+      burst(bird.x, bird.y, 18);
+
+      if (state.score > bestScore) {
+        bestScore = state.score;
+        localStorage.setItem(bestKey, String(bestScore));
+        bestEl.textContent = String(bestScore);
+      }
+
+      gameOverText.textContent = `Lograste ${state.score} punto${state.score === 1 ? '' : 's'}.`;
+      gameOverOverlay.classList.remove('hidden');
+    }
+
+    function burst(x, y, amount) {
+      for (let i = 0; i < amount; i++) {
+        particles.push({
+          x,
+          y,
+          vx: (Math.random() - 0.5) * 4,
+          vy: (Math.random() - 0.5) * 4,
+          life: 20 + Math.random() * 20,
+          size: 3 + Math.random() * 5,
+          hue: Math.random() > 0.5 ? '#ffffff' : '#ffd56f'
+        });
+      }
+    }
+
+    function update() {
+      clouds.forEach(c => {
+        c.x -= c.v;
+        if (c.x < -140) c.x = canvas.width + 100;
+      });
+
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life -= 1;
+        p.vy += 0.02;
+      });
+      particles = particles.filter(p => p.life > 0);
+
+      if (!state.started || state.over) return;
+
+      bird.vy += state.gravity;
+      bird.y += bird.vy;
+      bird.rot = Math.max(-0.45, Math.min(1.15, bird.vy * 0.08));
+
+      for (const pipe of pipes) {
+        pipe.x -= state.speed;
+
+        if (!pipe.scored && pipe.x + state.pipeWidth < bird.x) {
+          pipe.scored = true;
+          state.score++;
+          scoreEl.textContent = state.score;
+          statusEl.textContent = 'Jugando';
+          burst(bird.x + 8, bird.y, 10);
+
+          if (state.score % 5 === 0) {
+            state.speed += 0.16;
+            state.pipeGap = Math.max(132, state.pipeGap - 4);
+          }
+        }
+      }
+
+      if (pipes.length && pipes[0].x < -state.pipeWidth - 20) {
+        pipes.shift();
+        createPipe(pipes[pipes.length - 1].x + state.pipeSpacing);
+      }
+
+      const groundY = canvas.height - state.groundH;
+      if (bird.y + bird.h * 0.5 >= groundY || bird.y - bird.h * 0.45 <= 0) {
+        endGame();
+      }
+
+      for (const pipe of pipes) {
+        const bx = bird.x - bird.w * 0.27;
+        const by = bird.y - bird.h * 0.34;
+        const bw = bird.w * 0.56;
+        const bh = bird.h * 0.68;
+
+        const topRect = {
+          x: pipe.x,
+          y: 0,
+          w: state.pipeWidth,
+          h: pipe.top
+        };
+
+        const bottomRect = {
+          x: pipe.x,
+          y: pipe.top + state.pipeGap,
+          w: state.pipeWidth,
+          h: canvas.height - state.groundH - (pipe.top + state.pipeGap)
+        };
+
+        if (rectHit(bx, by, bw, bh, topRect) || rectHit(bx, by, bw, bh, bottomRect)) {
+          endGame();
+        }
+      }
+    }
+
+    function rectHit(x, y, w, h, r) {
+      return x < r.x + r.w && x + w > r.x && y < r.y + r.h && y + h > r.y;
+    }
+
+    function drawBackground() {
+      const sky = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      sky.addColorStop(0, '#ffe7d8');
+      sky.addColorStop(0.55, '#ffd2ba');
+      sky.addColorStop(1, '#f5b083');
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      clouds.forEach(c => {
+        ctx.globalAlpha = 0.35;
+        ctx.fillStyle = '#fffdf8';
+        drawCloud(c.x, c.y, 54 * c.s);
+      });
+      ctx.restore();
+
+      ctx.save();
+      ctx.fillStyle = '#f3a274';
+      ctx.beginPath();
+      ctx.moveTo(0, 420);
+      ctx.quadraticCurveTo(160, 340, 310, 392);
+      ctx.quadraticCurveTo(480, 445, 680, 370);
+      ctx.quadraticCurveTo(820, 322, 960, 394);
+      ctx.lineTo(960, 600);
+      ctx.lineTo(0, 600);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#de7b50';
+      ctx.beginPath();
+      ctx.moveTo(0, 470);
+      ctx.quadraticCurveTo(140, 438, 300, 500);
+      ctx.quadraticCurveTo(470, 556, 650, 490);
+      ctx.quadraticCurveTo(840, 420, 960, 512);
+      ctx.lineTo(960, 600);
+      ctx.lineTo(0, 600);
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
+    }
+
+    function drawCloud(x, y, s) {
+      ctx.beginPath();
+      ctx.arc(x, y, s * 0.42, 0, Math.PI * 2);
+      ctx.arc(x + s * 0.4, y - s * 0.1, s * 0.35, 0, Math.PI * 2);
+      ctx.arc(x + s * 0.78, y, s * 0.28, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    function drawPipe(pipe) {
+      const groundY = canvas.height - state.groundH;
+
+      drawPipeSegment(pipe.x, 0, state.pipeWidth, pipe.top, true);
+      drawPipeSegment(pipe.x, pipe.top + state.pipeGap, state.pipeWidth, groundY - (pipe.top + state.pipeGap), false);
+    }
+
+    function drawPipeSegment(x, y, w, h, topCap) {
+      const grad = ctx.createLinearGradient(x, 0, x + w, 0);
+      grad.addColorStop(0, '#bd1019');
+      grad.addColorStop(.45, '#ea3840');
+      grad.addColorStop(1, '#8f0911');
+
+      ctx.fillStyle = grad;
+      roundRect(ctx, x, y, w, h, 18, true, false);
+
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      roundRect(ctx, x + 9, y + 8, 10, h - 16, 8, true, false);
+
+      ctx.fillStyle = '#ffe7e7';
+      const bandH = 22;
+      if (topCap) {
+        roundRect(ctx, x - 8, h - bandH, w + 16, bandH + 8, 12, true, false);
+      } else {
+        roundRect(ctx, x - 8, y - 8, w + 16, bandH + 8, 12, true, false);
+      }
+
+      ctx.save();
+      ctx.fillStyle = '#d61f26';
+      ctx.font = '900 16px Inter';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      if (h > 90) {
+        const labelY = topCap ? Math.max(48, h - 54) : y + 48;
+        ctx.fillText('COKE', x + w / 2, labelY);
+      }
+      ctx.restore();
+    }
+
+    function drawGround() {
+      const y = canvas.height - state.groundH;
+      const grad = ctx.createLinearGradient(0, y, 0, canvas.height);
+      grad.addColorStop(0, '#7f371e');
+      grad.addColorStop(1, '#532113');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, y, canvas.width, state.groundH);
+
+      ctx.fillStyle = '#ffd56f';
+      for (let i = -20; i < canvas.width + 40; i += 32) {
+        ctx.beginPath();
+        ctx.arc(i + ((performance.now() * 0.02) % 32), y + 24, 6, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = 'rgba(255,255,255,.14)';
+      ctx.fillRect(0, y, canvas.width, 7);
+    }
+
+    function drawBird() {
+      ctx.save();
+      ctx.translate(bird.x, bird.y);
+      ctx.rotate(bird.rot);
+
+      ctx.fillStyle = '#2a100d';
+      ctx.beginPath();
+      ctx.ellipse(0, 50, 18, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+
+      const bottleGrad = ctx.createLinearGradient(0, -40, 0, 50);
+      bottleGrad.addColorStop(0, '#7e3d22');
+      bottleGrad.addColorStop(1, '#4b210f');
+      ctx.fillStyle = bottleGrad;
+
+      ctx.beginPath();
+      ctx.moveTo(-18, -38);
+      ctx.quadraticCurveTo(-10, -56, 0, -58);
+      ctx.quadraticCurveTo(10, -56, 18, -38);
+      ctx.lineTo(28, 22);
+      ctx.quadraticCurveTo(24, 48, 0, 52);
+      ctx.quadraticCurveTo(-24, 48, -28, 22);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#e1252d';
+      roundRect(ctx, -24, -10, 48, 26, 8, true, false);
+
+      ctx.strokeStyle = 'rgba(255,255,255,.75)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-12, 2);
+      ctx.quadraticCurveTo(0, -9, 12, 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#f6d39c';
+      ctx.beginPath();
+      ctx.moveTo(18, -10);
+      ctx.lineTo(42, 0);
+      ctx.lineTo(18, 12);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(-6, -24, 8, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#231815';
+      ctx.beginPath();
+      ctx.arc(-4, -23, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#c5a17d';
+      roundRect(ctx, -8, -58, 16, 12, 4, true, false);
+
+      ctx.restore();
+    }
+
+    function drawParticles() {
+      particles.forEach(p => {
+        ctx.globalAlpha = Math.max(0, p.life / 40);
+        ctx.fillStyle = p.hue;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    function drawScoreInGame() {
+      if (!state.started || state.over) return;
+      ctx.save();
+      ctx.fillStyle = 'rgba(255,250,246,.75)';
+      roundRect(ctx, canvas.width / 2 - 56, 22, 112, 54, 18, true, false);
+      ctx.fillStyle = '#7e1117';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '900 34px Inter';
+      ctx.fillText(String(state.score), canvas.width / 2, 49);
+      ctx.restore();
+    }
+
+    function drawIdleHint() {
+      if (state.started || state.over) return;
+      ctx.save();
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(126,17,23,.75)';
+      ctx.font = '800 20px Inter';
+      ctx.fillText('Toca para empezar', canvas.width / 2, canvas.height - 128);
+      ctx.restore();
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawBackground();
+      pipes.forEach(drawPipe);
+      drawGround();
+      drawBird();
+      drawParticles();
+      drawScoreInGame();
+      drawIdleHint();
+    }
+
+    function loop() {
+      update();
+      render();
+      requestAnimationFrame(loop);
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill, stroke) {
+      const radius = Math.min(r, w / 2, h / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.arcTo(x + w, y, x + w, y + h, radius);
+      ctx.arcTo(x + w, y + h, x, y + h, radius);
+      ctx.arcTo(x, y + h, x, y, radius);
+      ctx.arcTo(x, y, x + w, y, radius);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function handleAction(e) {
+      if (e) e.preventDefault();
+      if (state.over) return;
+      flap();
+    }
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', startGame);
+    tapZone.addEventListener('pointerdown', handleAction);
+
+    window.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'ArrowUp') {
+        e.preventDefault();
+        if (state.over) return;
+        flap();
+      }
+      if (e.code === 'Enter' && state.over) {
+        startGame();
+      }
+    }, { passive: false });
+
+    demoBtn.addEventListener('click', () => {
+      alert('Para jugar en otros dispositivos, sube este HTML a Netlify o GitHub Pages y comparte el enlace.');
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const text = window.location.href.startsWith('http') ? window.location.href : shareText.textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        copyBtn.textContent = 'Copiado';
+        setTimeout(() => copyBtn.textContent = 'Copiar', 1400);
+      } catch {
+        copyBtn.textContent = 'No se pudo';
+        setTimeout(() => copyBtn.textContent = 'Copiar', 1400);
+      }
+    });
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) entry.target.classList.add('visible');
+      });
+    }, { threshold: .16 });
+
+    document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    resetGame();
+    loop();
+  </script>
+</body>
+</html>
